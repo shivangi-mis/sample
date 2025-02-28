@@ -1,0 +1,63 @@
+pipeline {
+    agent any
+
+    environment {
+        NODEJS_VERSION = "18"  // Define Node.js version
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git credentialsId: '5b7455c7-6497-4179-856d-a24eaa413c01', url: 'https://github.com/shivangi-mis/sample.git'
+            }
+        }
+
+        stage('Install Node.js') {
+            steps {
+                script {
+                    def nodeInstalled = sh(script: 'node -v', returnStatus: true) == 0
+                    if (!nodeInstalled) {
+                        error "Node.js is not installed on the agent. Install Node.js before running the pipeline."
+                    }
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm install'
+            }
+        }
+
+        stage('Build React App') {
+            steps {
+                sh 'npm run build'
+            }
+        }
+
+        stage('Archive Build Artifacts') {
+            steps {
+                archiveArtifacts artifacts: 'build/**', fingerprint: true
+            }
+        }
+
+        stage('Deploy (Optional)') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Deploying application...'
+                // Add deployment steps here (e.g., copy files to a server or upload to AWS S3)
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "? Build completed successfully!"
+        }
+        failure {
+            echo "? Build failed. Check the logs for errors."
+        }
+    }
+}
